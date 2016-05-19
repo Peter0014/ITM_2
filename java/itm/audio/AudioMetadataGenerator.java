@@ -11,6 +11,17 @@ import itm.model.MediaFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map.Entry;
+
+import javax.media.format.AudioFormat;
+import javax.sound.sampled.AudioFileFormat;
+import javax.sound.sampled.AudioFileFormat.Type;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.UnsupportedAudioFileException;
+
+import com.sun.javafx.collections.MappingChange.Map;
 
 /**
  * This class reads audio files of various formats and stores some basic audio
@@ -109,9 +120,10 @@ public class AudioMetadataGenerator {
 	 *            indicates whether existing metadata files should be
 	 *            overwritten or not
 	 * @return the created image media object
+	 * @throws UnsupportedAudioFileException 
 	 */
 	protected AudioMedia processAudio(File input, File output, boolean overwrite)
-			throws IOException, IllegalArgumentException {
+			throws IOException, IllegalArgumentException, UnsupportedAudioFileException {
 		if (!input.exists())
 			throw new IOException("Input file " + input + " was not found!");
 		if (input.isDirectory())
@@ -142,17 +154,64 @@ public class AudioMetadataGenerator {
 		AudioMedia media = (AudioMedia) MediaFactory.createMedia(input);		
 
 		// load the input audio file, do not decode
-
-		// read AudioFormat properties
-
+		AudioInputStream in = AudioSystem.getAudioInputStream(input);
+		
+		// read AudioFormat properties		
+		javax.sound.sampled.AudioFormat aformat = in.getFormat(); 
+		
+		aformat.getSampleSizeInBits();
+		media.setChannels(aformat.getChannels());
+		
+		if(aformat.getProperty("bitrate") != null)
+			media.setBitrate(Integer.parseInt(aformat.getProperty("bitrate").toString()));
+		
+		if(aformat.getEncoding() != null)
+			media.setEncoding(aformat.getEncoding().toString());
+		
 		// read file-type specific properties
+		
+		if(aformat.getEncoding().toString().toLowerCase().contains("mpeg") )
+		{
+			
+			AudioFileFormat aff = AudioSystem.getAudioFileFormat(in);
+			java.util.Map<String, Object> map = aff.properties();
+			
+			for(Entry<String, Object> entry : map.entrySet())
+			{
+				// you might have to distinguish what properties are available for what audio format
+				if(entry.getKey().contains(("author")))
+					media.setAuthor(entry.getValue().toString());
+				if(entry.getKey().contains(("title")))
+					media.setTitle(entry.getValue().toString());
+				if(entry.getKey().contains(("date")))
+					media.setDate(entry.getValue().toString());
+				if(entry.getKey().contains(("comment")))
+					media.setComment(entry.getValue().toString());
+				if(entry.getKey().contains(("album")))
+					media.setAlbum(entry.getValue().toString());
+				if(entry.getKey().contains(("track")))
+					media.setTrack(entry.getValue().toString());
+				if(entry.getKey().contains(("composer")))
+					media.setComposer(entry.getValue().toString());
+				if(entry.getKey().contains(("genre") ))
+					media.setGenre(entry.getValue().toString());
+				if(entry.getKey().contains(("frequency")))
+					media.setFrequency(Float.parseFloat(entry.getValue().toString()));
+				if(entry.getKey().contains(("duration")))
+					media.setDuration(Float.parseFloat(entry.getValue().toString()));
+				if(entry.getKey().contains(("bitrate")))
+					media.setBitrate(Integer.parseInt(entry.getValue().toString()));
+				
+			}
 
-		// you might have to distinguish what properties are available for what audio format
-
+		}
 		// add a "audio" tag
+		media.addTag("audio");
+		System.out.println(media.serializeObject());
 
 		// close the audio and write the md file.
-
+		media.writeToFile(outputFile);
+		
 		return media;
 	}
 

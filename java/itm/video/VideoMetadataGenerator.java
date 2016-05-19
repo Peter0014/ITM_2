@@ -25,6 +25,8 @@ import javax.media.protocol.DataSource;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
+import com.xuggle.xuggler.io.IURLProtocolHandler;
+import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.ICodec.Type;
 
 /**
@@ -142,16 +144,56 @@ public class VideoMetadataGenerator {
 		// Fill in your code here!
 		// ***************************************************************
 		
-		
 		// create video media object
 		VideoMedia media = (VideoMedia) MediaFactory.createMedia(input);
 
 		// set video and audio stream metadata 
-		
+		 // Create a Xuggler container object
+	    IContainer container = IContainer.make();
+	    
+	    if (container.open(input.getAbsolutePath(), IContainer.Type.READ, null) < 0)
+	        throw new IllegalArgumentException("could not open file: " + input);
+	    
+	    // query how many streams the call to open found
+	    int numStreams = container.getNumStreams();
+	    
+	    for(int i = 0; i < numStreams; i++)
+	    {
+	      // Find the stream object
+	      IStream stream = container.getStream(i);
+	      // Get the pre-configured decoder that can decode this stream;
+	      IStreamCoder coder = stream.getStreamCoder();
+
+	      media.setVideoCodec(coder.getCodecType().toString());
+	      media.setVideoCodecID(coder.getCodecID().toString());
+	      if(stream.getDuration() == Global.NO_PTS)
+		      media.setVideoLength(0);
+	      else
+	    	  media.setVideoLength(stream.getDuration());
+	      
+	      
+	      if (coder.getCodecType() == Type.CODEC_TYPE_AUDIO)
+	      {
+		      media.setAudioCodec(coder.getCodecType().toString());
+		      media.setAudioCodecID(coder.getCodecID().toString());
+		      media.setAudioChannels(coder.getChannels());
+		      media.setAudioSampleRate(coder.getSampleRate());
+		      media.setAudioBitRate(coder.getBitRate());
+	      } 
+	      else if (coder.getCodecType() == Type.CODEC_TYPE_VIDEO)
+	      {
+		      media.setVideoHeight(coder.getHeight());
+		      media.setVideoWidth(coder.getWidth());
+		      media.setVideoFrameRate(coder.getFrameRate().getDouble());
+	      }
+	    }
 		// add video tag
+	    media.addTag("video");
+	    System.out.println(media.serializeObject());
 
 		// write metadata
-		
+		media.writeToFile(outputFile);
+	    
 		return media;
 	}
 

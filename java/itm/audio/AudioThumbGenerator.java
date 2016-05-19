@@ -1,5 +1,7 @@
 package itm.audio;
 
+import java.io.ByteArrayInputStream;
+
 /*******************************************************************************
  This file is part of the ITM course 2016
  (c) University of Vienna 2009-2016
@@ -8,7 +10,15 @@ package itm.audio;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+
+import javax.media.format.AudioFormat;
+import javax.sound.sampled.AudioFileFormat.Type;
+import javax.sound.sampled.AudioFileFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.UnsupportedAudioFileException;
 
 /**
  * 
@@ -100,9 +110,10 @@ public class AudioThumbGenerator {
 	 *            a reference to the input audio File
 	 * @param output
 	 *            a reference to the output directory
+	 * @throws UnsupportedAudioFileException 
 	 */
 	protected File processAudio(File input, File output) throws IOException,
-			IllegalArgumentException {
+			IllegalArgumentException, UnsupportedAudioFileException {
 		if (!input.exists())
 			throw new IOException("Input file " + input + " was not found!");
 		if (input.isDirectory())
@@ -113,20 +124,92 @@ public class AudioThumbGenerator {
 			throw new IOException(output + " is not a directory!");
 
 		File outputFile = new File(output, input.getName() + ".wav");
-
+		
 
 		// ***************************************************************
 		// Fill in your code here!
 		// ***************************************************************
 
+
 		// load the input audio file
+		AudioInputStream in = AudioSystem.getAudioInputStream(input);
 
 		// cut the audio data in the stream to a given length
+		javax.sound.sampled.AudioFormat af = in.getFormat();
+	    byte[] data;
+
+		 // bytes = seconds * sample rate * channels * (bits per sample / 8)
+	    if(af.getFrameSize() == -1)
+	    	data = new byte[Math.round(thumbNailLength * af.getSampleRate() * af.getChannels() * 
+	    			((af.getSampleSizeInBits()==-1? 2f/8f : af.getSampleSizeInBits() / 8f)) )];
+	    else //bytes = seconds * sample rate * frame size
+	    	data = new byte[Math.round(thumbNailLength * af.getSampleRate() * af.getFrameSize() )];
+	 
+	    // Choose a buffer of 100 KB
+	    byte[] buffer = new byte[102400];
+
+	    int numOfBytesReadTotal = 0;
+	    int numOfBytesRead = 0;
+
+	    while ((numOfBytesRead = in.read(buffer)) != -1) {
+
+	      if (numOfBytesReadTotal + numOfBytesRead >= data.length)
+	      {
+	        System.arraycopy(buffer, 0, data, numOfBytesReadTotal, data.length - numOfBytesReadTotal);
+	        break;
+	      }
+
+	      System.arraycopy(buffer, 0, data, numOfBytesReadTotal, numOfBytesRead);
+	      numOfBytesReadTotal += numOfBytesRead;
+	    }
 
 		// save the acoustic thumbnail as WAV file
+		InputStream is = new ByteArrayInputStream(data);
+		AudioInputStream towrite = new AudioInputStream(is, af, (long)data.length);
+		AudioSystem.write(towrite, Type.WAVE, outputFile);
 
 		return outputFile;
 	}
+	
+	public byte[] getStreamPart(AudioInputStream inputStream, Long startTimeMS, Long durationMS) throws IOException {
+
+	    // First skip to the desired position
+	    long bytesToSkip = Math.round((startTimeMS / 1000) * inputStream.getFormat().getSampleRate() * Math.abs(inputStream.getFormat().getFrameSize()));
+	    long skippedBytes = inputStream.skip(bytesToSkip);
+	    if (bytesToSkip != skippedBytes) {
+	      System.out.println("Tried to skip " + bytesToSkip + " bytes but only skipped " + skippedBytes + " bytes.");
+	    }
+
+	      System.out.println("crtbyte" + Math.round( inputStream.getFormat().getFrameSize()));
+	    byte[] result = new byte[Math.round((durationMS / 1000) * inputStream.getFormat().getSampleRate() * Math.abs(inputStream.getFormat().getFrameSize()))];
+
+	      System.out.println("endcrt");
+	    // Choose a buffer of 100 KB
+	    byte[] audioBytes = new byte[102400];
+
+	    int numberOfBytesRead;
+	    int totalNumberOfBytesRead = 0;
+
+	    while ((numberOfBytesRead = inputStream.read(audioBytes)) != -1) {
+
+		      System.out.println("inwhuile");
+	      if (result.length <= totalNumberOfBytesRead + numberOfBytesRead) {
+
+	        // Write down the last bytes
+	        System.arraycopy(audioBytes, 0, result, totalNumberOfBytesRead, result.length - totalNumberOfBytesRead);
+
+	        // Interrupt
+	        break;
+	      }
+
+	      System.out.println("arrraycop");
+	      System.arraycopy(audioBytes, 0, result, totalNumberOfBytesRead, numberOfBytesRead);
+
+	      totalNumberOfBytesRead += numberOfBytesRead;
+	    }
+
+	    return result;
+	  }
 
 	/**
 	 * Main method. Parses the commandline parameters and prints usage

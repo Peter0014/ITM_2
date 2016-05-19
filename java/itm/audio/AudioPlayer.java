@@ -8,10 +8,14 @@ package itm.audio;
 import java.io.File;
 import java.io.IOException;
 
+import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.DataLine;
 import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.Mixer;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
@@ -78,19 +82,31 @@ public class AudioPlayer {
 			throws UnsupportedAudioFileException, IOException {
 
 		AudioInputStream din = null;
-		
+
 		// ***************************************************************
 		// Fill in your code here!
 		// ***************************************************************
-
 		// open audio stream
+		AudioInputStream in = AudioSystem.getAudioInputStream(input);
 		
 		// get format
+		AudioFormat aformat = in.getFormat();
 		
+		  
 		// get decoded format
+		  AudioFormat  decodedFormat = new AudioFormat(
+			  AudioFormat.Encoding.PCM_SIGNED,
+			  aformat.getSampleRate(),
+			  16,
+			  aformat.getChannels(),
+			  aformat.getChannels() * 2,
+			  aformat.getSampleRate(),
+			  false);
 		
 		// get decoded audio input stream
- 
+		  din = AudioSystem.getAudioInputStream(decodedFormat, in);
+
+		
 		return din;
 	}
 
@@ -112,13 +128,36 @@ public class AudioPlayer {
 		// ***************************************************************
 		// Fill in your code here!
 		// ***************************************************************
-
-		// get audio format
+		
 		
 		// get a source data line
+		final AudioFormat af = audio.getFormat();
+		final DataLine.Info dataLineInfo = new DataLine.Info(SourceDataLine.class, af);
+		if(! AudioSystem.isLineSupported(dataLineInfo)) {
+			System.out.println("AudioSystem does not support the line type: " + dataLineInfo);
+			return;
+		}
+		final SourceDataLine sourceDataLine = (SourceDataLine)AudioSystem.getLine(dataLineInfo);
 		
 		// read samples from audio and write them to the data line 
-
+		try {
+			sourceDataLine.open(af);
+			sourceDataLine.start();
+			int cnt;
+			byte[] buffer = new byte[1024];
+			// keep looping until the input read return -1
+			while( (cnt = audio.read(buffer, 0, buffer.length)) != -1 ) {
+				if(cnt > 0) {
+					// write data to the internal buffer of the data line where it will be delivered to the speaker
+					sourceDataLine.write(buffer, 0, cnt);
+				}
+			} // end while loop.
+			// block and wait for internal buffer to empty
+			sourceDataLine.drain();
+			sourceDataLine.close();
+		}catch(Exception ex) {
+			System.out.println("error occured: " + ex.getMessage());
+		}
 		// properly close the line!
 	}
 
