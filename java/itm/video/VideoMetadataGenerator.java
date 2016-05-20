@@ -149,25 +149,31 @@ public class VideoMetadataGenerator {
 
 		// set video and audio stream metadata 
 		 // Create a Xuggler container object
+		//der conainer ist vorerst leer enthael dann aber alle video daten
 	    IContainer container = IContainer.make();
+	    //oeffnen des containers mit dem gewuenschten video 
 	    container.open(input.getAbsolutePath(), IContainer.Type.READ, null);
 	    
-	    // query how many streams the call to open found
+	    // der container kann mehrere streams enthalten wie z.b. einen video und einen audio sream
 	    int numStreams = container.getNumStreams();
 	    
+	    //nun gehn wir alle streams durch und reagieren je nachdem drauf
 	    for(int i = 0; i < numStreams; i++)
 	    {
-	      // Find the stream object
+	    	//holen uns nacheinander jeden sream einmal raus und bearbeien ihn
 	      IStream stream = container.getStream(i);
-	      // Get the pre-configured decoder that can decode this stream;
+
+	      //enheal die encodieren DAen des sreams
 	      IStreamCoder coder = stream.getStreamCoder();
 
+	      //setzen der wetre des mediaobjeks
 	      media.setVideoCodec(coder.getCodecType().toString());
 	      media.setVideoCodecID(coder.getCodecID().toString());
 	     
 	      media.setVideoLength(container.getDuration() / Global.DEFAULT_PTS_PER_SECOND);
 	      
-	      
+	      //nun muessen wir checken ob der stream gerade ein video bw ein audio sream is und speichern
+	      //je nachdem verschiedene werte in das objekt
 	      if (coder.getCodecType() == Type.CODEC_TYPE_AUDIO)
 	      {
 		      media.setAudioCodec(coder.getCodecType().toString());
@@ -183,6 +189,7 @@ public class VideoMetadataGenerator {
 		      media.setVideoFrameRate(coder.getFrameRate().getDouble());
 	      }
 	    }
+	    
 		// add video tag
 	    media.addTag("video");
 	    System.out.println(media.serializeObject());
