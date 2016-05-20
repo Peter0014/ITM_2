@@ -13,9 +13,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
-import javax.media.format.AudioFormat;
 import javax.sound.sampled.AudioFileFormat.Type;
-import javax.sound.sampled.AudioFileFormat;
+import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
@@ -133,11 +132,12 @@ public class AudioThumbGenerator {
 
 		// load the input audio file
 		AudioInputStream in = AudioSystem.getAudioInputStream(input);
-
-		// cut the audio data in the stream to a given length
-		javax.sound.sampled.AudioFormat af = in.getFormat();
+		AudioFormat af = in.getFormat();
+		
+		//Array in dem die Daten des thumbnails gespeichert werden
 	    byte[] data;
-
+	    
+	    //berechnung der groesse vo dem byte array "daten"
 		 // bytes = seconds * sample rate * channels * (bits per sample / 8)
 	    if(af.getFrameSize() == -1)
 	    	data = new byte[Math.round(thumbNailLength * af.getSampleRate() * af.getChannels() * 
@@ -148,68 +148,37 @@ public class AudioThumbGenerator {
 	    // Choose a buffer of 100 KB
 	    byte[] buffer = new byte[102400];
 
+	    //gesamte anzahl an derzeit gelesenen bytes von der audiodatei
 	    int numOfBytesReadTotal = 0;
+	    //die aktuelle anzahl an bits, die gerade gelesen werden von der audio datei
 	    int numOfBytesRead = 0;
 
+	    //lese solange von der audiodatei, bis sie endet
 	    while ((numOfBytesRead = in.read(buffer)) != -1) {
 
+	    	//sobald wir die maximale anzahl an zu lesende daten ueberschritten haben, hoeren wir mi  der schleife auf, 
+	    	//dann haben wir alle benoetigten Daten um das thumbnail zu schreiben
 	      if (numOfBytesReadTotal + numOfBytesRead >= data.length)
 	      {
+	    	  //daen werden von dem akuellen buffer in den daa array kopier um sie spaeter weguspeichern
 	        System.arraycopy(buffer, 0, data, numOfBytesReadTotal, data.length - numOfBytesReadTotal);
 	        break;
 	      }
 
+    	  //daen werden von dem akuellen buffer in den daa array kopier um sie spaeter weguspeichern
 	      System.arraycopy(buffer, 0, data, numOfBytesReadTotal, numOfBytesRead);
 	      numOfBytesReadTotal += numOfBytesRead;
 	    }
 
-		// save the acoustic thumbnail as WAV file
+		//erzeugen eines neuen inpusream, der aus den vorhin gelesenen daen ereiug wird 
 		InputStream is = new ByteArrayInputStream(data);
+		//mittels den inputstream koennen wir nun einen neuen AudioInpuSream ereugen, den wir anschliessend physisch wegspeichern 
 		AudioInputStream towrite = new AudioInputStream(is, af, (long)data.length);
 		AudioSystem.write(towrite, Type.WAVE, outputFile);
 
 		return outputFile;
 	}
 	
-	public byte[] getStreamPart(AudioInputStream inputStream, Long startTimeMS, Long durationMS) throws IOException {
-
-	    // First skip to the desired position
-	    long bytesToSkip = Math.round((startTimeMS / 1000) * inputStream.getFormat().getSampleRate() * Math.abs(inputStream.getFormat().getFrameSize()));
-	    long skippedBytes = inputStream.skip(bytesToSkip);
-	    if (bytesToSkip != skippedBytes) {
-	      System.out.println("Tried to skip " + bytesToSkip + " bytes but only skipped " + skippedBytes + " bytes.");
-	    }
-
-	      System.out.println("crtbyte" + Math.round( inputStream.getFormat().getFrameSize()));
-	    byte[] result = new byte[Math.round((durationMS / 1000) * inputStream.getFormat().getSampleRate() * Math.abs(inputStream.getFormat().getFrameSize()))];
-
-	      System.out.println("endcrt");
-	    // Choose a buffer of 100 KB
-	    byte[] audioBytes = new byte[102400];
-
-	    int numberOfBytesRead;
-	    int totalNumberOfBytesRead = 0;
-
-	    while ((numberOfBytesRead = inputStream.read(audioBytes)) != -1) {
-
-		      System.out.println("inwhuile");
-	      if (result.length <= totalNumberOfBytesRead + numberOfBytesRead) {
-
-	        // Write down the last bytes
-	        System.arraycopy(audioBytes, 0, result, totalNumberOfBytesRead, result.length - totalNumberOfBytesRead);
-
-	        // Interrupt
-	        break;
-	      }
-
-	      System.out.println("arrraycop");
-	      System.arraycopy(audioBytes, 0, result, totalNumberOfBytesRead, numberOfBytesRead);
-
-	      totalNumberOfBytesRead += numberOfBytesRead;
-	    }
-
-	    return result;
-	  }
 
 	/**
 	 * Main method. Parses the commandline parameters and prints usage
@@ -217,7 +186,7 @@ public class AudioThumbGenerator {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		// args = new String[]{"./media/audio", "./test", "10"};
+		//args = new String[]{"./media/audio", "./media/audio", "5"};
 		
 		if (args.length < 3) {
 			System.out

@@ -8,14 +8,11 @@ package itm.audio;
 import java.io.File;
 import java.io.IOException;
 
-import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.Mixer;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
@@ -86,6 +83,7 @@ public class AudioPlayer {
 		// ***************************************************************
 		// Fill in your code here!
 		// ***************************************************************
+		
 		// open audio stream
 		AudioInputStream in = AudioSystem.getAudioInputStream(input);
 		
@@ -131,28 +129,38 @@ public class AudioPlayer {
 		
 		
 		// get a source data line
-		final AudioFormat af = audio.getFormat();
-		final DataLine.Info dataLineInfo = new DataLine.Info(SourceDataLine.class, af);
+		AudioFormat af = audio.getFormat();
+		
+		// erzeugen einer DataLine um abzufragen ob dieser Line type überhaupt suppored wird.   
+		DataLine.Info dataLineInfo = new DataLine.Info(SourceDataLine.class, af);
 		if(! AudioSystem.isLineSupported(dataLineInfo)) {
 			System.out.println("AudioSystem does not support the line type: " + dataLineInfo);
 			return;
 		}
-		final SourceDataLine sourceDataLine = (SourceDataLine)AudioSystem.getLine(dataLineInfo);
-		
-		// read samples from audio and write them to the data line 
+		//auf die sourceDaaLine werden die Audiobis bgeschreiben, welchen dem mixwer weiergeleie werden, 
+		//der diese daruaf mit verschiedenen lines mixen und abspielen kann. 
+		SourceDataLine sourceDataLine = (SourceDataLine)AudioSystem.getLine(dataLineInfo);
+
 		try {
+			//oeffnen und starten der dataline
 			sourceDataLine.open(af);
 			sourceDataLine.start();
-			int cnt;
+			
+			//die akuellen bis die gelesen werden
+			int actualBitsRead;
+			
+			//die groesse des Buffers, wie viele bytes pro durchgang von der audiodaei gelesen werden sollen 
 			byte[] buffer = new byte[1024];
-			// keep looping until the input read return -1
-			while( (cnt = audio.read(buffer, 0, buffer.length)) != -1 ) {
-				if(cnt > 0) {
-					// write data to the internal buffer of the data line where it will be delivered to the speaker
-					sourceDataLine.write(buffer, 0, cnt);
+			
+			//liest die anaahl an bis (abhaengig von der buffer groesse) aus, gib sie der sourcedataline weiter welche diese abspielt.
+			while( (actualBitsRead = audio.read(buffer, 0, buffer.length)) != -1 ) {
+				if(actualBitsRead > 0) {
+					// schreibt nun die daten auf die lane, die es den lautsprechern ausliefert und somit zu hoeren ist.
+					sourceDataLine.write(buffer, 0, actualBitsRead);
 				}
-			} // end while loop.
-			// block and wait for internal buffer to empty
+			}
+
+			//connection wieder sauber schließen 
 			sourceDataLine.drain();
 			sourceDataLine.close();
 		}catch(Exception ex) {

@@ -1,5 +1,10 @@
 package itm.image;
 
+import java.awt.Color;
+import java.awt.color.ColorSpace;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+
 /*******************************************************************************
     This file is part of the ITM course 2016
     (c) University of Vienna 2009-2016
@@ -10,29 +15,35 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriter;
+
+import itm.util.Histogram;
+
 /**
-  * This class creates color and grayscale histograms for various images.
-  * It can be called with 3 parameters, an input filename/directory, an output directory and a various bin/interval size.
-  * It will read the input image(s), count distinct pixel values and then plot the histogram.
-  * 
-  * If the input file or the output directory do not exist, an exception is thrown.
-  */
-public class ImageHistogramGenerator {
-	
+    This class creates color and grayscale histograms for various images.
+    It can be called with 3 parameters, an input filename/directory, an output directory and a various bin/interval size.
+    It will read the input image(s), count distinct pixel values and then plot the histogram.
+
+    If the input file or the output directory do not exist, an exception is thrown.
+*/
+public class ImageHistogramGenerator 
+{
 
     /**
-     *  Constructor.
-     */
-    public ImageHistogramGenerator() {
+        Constructor.
+    */
+    public ImageHistogramGenerator() 
+    {
     }
 
     /**
-     * Processes an image directory in a batch process.
-     * @param input a reference to the input image file
-     * @param output a reference to the output directory
-     * @param bins the histogram interval
-     * @return a list of the created files
-     */
+        Processes an image directory in a batch process.
+        @param input a reference to the input image file
+        @param output a reference to the output directory
+        @param bins the histogram interval
+        @return a list of the created files
+    */
     public ArrayList<File> batchProcessImages( File input, File output, int bins) throws IOException
     {
         if ( ! input.exists() ) 
@@ -66,13 +77,13 @@ public class ImageHistogramGenerator {
     }  
     
     /**
-     * Processes the passed input image and stores it to the output directory.
-     * @param input a reference to the input image file
-     * @param output a reference to the output directory
-     * @param bins the histogram interval
-     * already existing files are overwritten automatically
-     */   
-	protected File processImage( File input, File output, int bins ) throws IOException, IllegalArgumentException
+        Processes the passed input image and stores it to the output directory.
+        @param input a reference to the input image file
+        @param output a reference to the output directory
+        @param bins the histogram interval
+        already existing files are overwritten automatically
+    */   
+	protected File processImage( File input, File output, int bins ) throws IOException, Exception, IllegalArgumentException
     {
 		if ( ! input.exists() ) 
             throw new IOException( "Input file " + input + " was not found!" );
@@ -90,26 +101,60 @@ public class ImageHistogramGenerator {
 		File outputFile = new File( output, input.getName() + ".hist.png" );
 		
        
-	// ***************************************************************
+        // ***************************************************************
         //  Fill in your code here!
         // ***************************************************************
 
-        // load the input image
-		
-		// get the color model of the image and the amount of color components
-		
-		// initiate a Histogram[color components] [bins]
-		
-		// create a histogram array histArray[color components][bins]
-		
-		// read the pixel values and extract the color information
-		
-		// fill the array setHistogram(histArray)
-		
-		// plot the histogram, try different dimensions for better visualization
-		
-        // encode and save the image as png 
-        return outputFile;
+		try
+		{
+	        // load the input image
+			BufferedImage img = ImageIO.read(input);
+			
+			// get the color model of the image and the amount of color components
+			ColorModel cm = img.getColorModel();
+			int numColComp = cm.getNumColorComponents();
+			
+			// initiate a Histogram[color components] [bins]
+			Histogram hg = new Histogram(numColComp, bins);
+			
+			// create a histogram array histArray[color components][bins]
+			int[][] histArray = new int[numColComp][bins]; 
+			
+			int height = img.getHeight();
+			int width = img.getWidth();
+
+			//if(cm.getNumColorComponents() >= 3) //color pic
+			if(cm.getColorSpace().getType() == ColorSpace.TYPE_RGB) 
+			{
+				for(int iC = 0; iC<width;iC++)
+					for(int iC2 = 0; iC2<height;iC2++)
+					{
+						Color col = new Color(img.getRGB(iC, iC2));
+	
+						histArray[0] [(int)((double)col.getRed() / 255 * (bins-1))] +=1;
+						histArray[1] [(int)((double)col.getGreen() / 255 * (bins-1))] +=1;
+						histArray[2] [(int)((double)col.getBlue() / 255 * (bins-1))] +=1;
+					}
+			}
+			else
+	            throw new IOException( "The Color Space \""+cm.getColorSpace()+"\" is not supported." );
+				
+			
+			// fill the array setHistogram(histArray)
+			hg.setHistogram(histArray);
+			
+			// plot the histogram, try different dimensions for better visualization
+	        // encode and save the image as png
+			ImageIO.write(hg.plotHistogram(1028, 720), "png", outputFile);
+			
+	         
+	        return outputFile;
+
+		}
+        catch(Exception ex)
+        {
+            throw new Exception( "An Error occured: \n" + ex.getMessage());
+        }
     }
     
         
@@ -118,13 +163,13 @@ public class ImageHistogramGenerator {
     */
     public static void main( String[] args ) throws Exception
     {
-    	if ( args.length < 3 ) {
+        if ( args.length < 3 ) {
             System.out.println( "usage: java itm.image.ImageHistogramGenerator <input-image> <output-directory> <bins>" );
             System.out.println( "usage: java itm.image.ImageHistogramGenerator <input-directory> <output-directory> <bins>" );
             System.out.println( "");
             System.out.println( "bins:default 256" );
             System.exit( 1 );
-            }
+        }
         // read params
         File fi = new File( args[0] );
         File fo = new File( args[1] );

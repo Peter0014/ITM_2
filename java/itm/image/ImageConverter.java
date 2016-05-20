@@ -1,13 +1,25 @@
 package itm.image;
 
+import java.awt.image.BufferedImage;
+
 /*******************************************************************************
     This file is part of the ITM course 2016
     (c) University of Vienna 2009-2016
 *******************************************************************************/
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
+import javax.imageio.stream.FileImageOutputStream;
+
+import com.sun.image.codec.jpeg.JPEGEncodeParam;
 
 /**
     This class converts images into various image formats (BMP, PNG, ...).
@@ -16,11 +28,13 @@ import java.util.ArrayList;
     
     If the input file/dir or the output directory do not exist, an exception is thrown.
 */
-public class ImageConverter {
+public class ImageConverter 
+{
 
     public final static String BMP = "bmp";
     public final static String PNG = "png";
     public final static String JPEG = "jpeg";
+    public final static String JPG = "jpg";
    
     /**
         Constructor.
@@ -82,7 +96,7 @@ public class ImageConverter {
       	@param targetFormat bmp, png or jpeg
       	@param quality a number between 0 (minimum quality) and 1 (max quality)  
     */
-	protected File processImage( File input, File output, String targetFormat, float quality ) throws IOException, IllegalArgumentException
+	protected File processImage( File input, File output, String targetFormat, float quality ) throws IOException, Exception, IllegalArgumentException
     {
         if ( ! input.exists() ) 
             throw new IOException( "Input file " + input + " was not found!" );
@@ -98,19 +112,51 @@ public class ImageConverter {
                throw new IllegalArgumentException( "Unknown target format: " + targetFormat );
 
         File outputFile = null;
-        
         // ***************************************************************
         //  Fill in your code here!
         // ***************************************************************
+        
+        try
+        {
+            // load the input image
+            BufferedImage img = ImageIO.read(input);
+            
+            if(targetFormat.equalsIgnoreCase( JPEG ) || targetFormat.equalsIgnoreCase( JPG ))
+            {
+        		//Quelle: http://stackoverflow.com/questions/17108234/setting-jpg-compression-level-with-imageio-in-java
+            	
+            	JPEGImageWriteParam iw = new JPEGImageWriteParam(null);
+            	iw.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            	iw.setCompressionQuality(quality);
+            	
+            	final ImageWriter writer = ImageIO.getImageWritersByFormatName("jpg").next();
+            	// specifies where the jpg image has to be written
+            	writer.setOutput(new FileImageOutputStream(
+            			new File(output.getPath()+"\\"+input.getName()+"-"+quality+"."+targetFormat)));
 
-        // load the input image
+            	// writes the file with given compression level 
+            	// from your JPEGImageWriteParam instance
+            	writer.write(null, new IIOImage(img, null, null), iw);
+            }
+            else
+            {
+            	outputFile = new File(output.getPath()+"\\"+input.getName()+"."+targetFormat);
+            	
+                // encode and save the image 
+                ImageIO.write(img, targetFormat, outputFile);
+            }
+            
+            
+        }
+        catch(Exception ex)
+        {
+            throw new Exception( "An Error occured: \n" + ex.getMessage());
+        }
        
-        // encode and save the image 
 
         return outputFile;
     }
-    
-        
+     
     /**
         Main method. Parses the commandline parameters and prints usage information if required.
     */
@@ -129,11 +175,13 @@ public class ImageConverter {
         File fo = new File( args[1] );
         String targetFormat = args[2];
         float quality = 1.0f;
-        if ( args.length > 3 )
+        if ( args.length > 3 ) {
         	quality = Float.parseFloat( args[3] );
+        }
 
         System.out.println( "converting " + fi.getAbsolutePath() + " to " + fo.getAbsolutePath() );
         ImageConverter converter = new ImageConverter();
+      
         converter.batchProcessImages( fi, fo, targetFormat, quality );        
     }    
 }

@@ -150,9 +150,7 @@ public class VideoMetadataGenerator {
 		// set video and audio stream metadata 
 		 // Create a Xuggler container object
 	    IContainer container = IContainer.make();
-	    
-	    if (container.open(input.getAbsolutePath(), IContainer.Type.READ, null) < 0)
-	        throw new IllegalArgumentException("could not open file: " + input);
+	    container.open(input.getAbsolutePath(), IContainer.Type.READ, null);
 	    
 	    // query how many streams the call to open found
 	    int numStreams = container.getNumStreams();
@@ -166,10 +164,8 @@ public class VideoMetadataGenerator {
 
 	      media.setVideoCodec(coder.getCodecType().toString());
 	      media.setVideoCodecID(coder.getCodecID().toString());
-	      if(stream.getDuration() == Global.NO_PTS)
-		      media.setVideoLength(0);
-	      else
-	    	  media.setVideoLength(stream.getDuration());
+	     
+	      media.setVideoLength(container.getDuration() / Global.DEFAULT_PTS_PER_SECOND);
 	      
 	      
 	      if (coder.getCodecType() == Type.CODEC_TYPE_AUDIO)

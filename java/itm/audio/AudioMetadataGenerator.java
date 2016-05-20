@@ -1,5 +1,17 @@
 package itm.audio;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.sound.sampled.AudioFileFormat;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.UnsupportedAudioFileException;
+
 /*******************************************************************************
  This file is part of the ITM course 2016
  (c) University of Vienna 2009-2016
@@ -7,21 +19,6 @@ package itm.audio;
 
 import itm.model.AudioMedia;
 import itm.model.MediaFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Map.Entry;
-
-import javax.media.format.AudioFormat;
-import javax.sound.sampled.AudioFileFormat;
-import javax.sound.sampled.AudioFileFormat.Type;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
-import javax.sound.sampled.UnsupportedAudioFileException;
-
-import com.sun.javafx.collections.MappingChange.Map;
 
 /**
  * This class reads audio files of various formats and stores some basic audio
@@ -157,54 +154,66 @@ public class AudioMetadataGenerator {
 		AudioInputStream in = AudioSystem.getAudioInputStream(input);
 		
 		// read AudioFormat properties		
-		javax.sound.sampled.AudioFormat aformat = in.getFormat(); 
-		
-		aformat.getSampleSizeInBits();
+		AudioFormat aformat = in.getFormat(); 
 		media.setChannels(aformat.getChannels());
 		
-		if(aformat.getProperty("bitrate") != null)
-			media.setBitrate(Integer.parseInt(aformat.getProperty("bitrate").toString()));
-		
+		//encoding typ setzen sofern nicht null
 		if(aformat.getEncoding() != null)
 			media.setEncoding(aformat.getEncoding().toString());
 		
 		// read file-type specific properties
-		
+		//sofern die daei eine mpeg datei ist, schreib die in die media insanz alle werte  
 		if(aformat.getEncoding().toString().toLowerCase().contains("mpeg") )
 		{
-			
+			//lade alle properties in eine eigene hashmap um sie spaeter durchzugehen
 			AudioFileFormat aff = AudioSystem.getAudioFileFormat(in);
-			java.util.Map<String, Object> map = aff.properties();
-			
+			Map<String, Object> map = aff.properties();
+
+			//gehe jeden eintrag der map durch 
 			for(Entry<String, Object> entry : map.entrySet())
 			{
-				// you might have to distinguish what properties are available for what audio format
-				if(entry.getKey().contains(("author")))
+				//sofern der key des einrages eines der schluesselworte enthaelt z.b. author,
+				//schreibe den inhalt in das media objekt
+				if(entry.getKey().toLowerCase().contains(("author")))
 					media.setAuthor(entry.getValue().toString());
-				if(entry.getKey().contains(("title")))
+				else if(entry.getKey().toLowerCase().contains(("title")))
 					media.setTitle(entry.getValue().toString());
-				if(entry.getKey().contains(("date")))
+				else if(entry.getKey().toLowerCase().contains(("date")))
 					media.setDate(entry.getValue().toString());
-				if(entry.getKey().contains(("comment")))
+				else if(entry.getKey().toLowerCase().contains(("comment")))
 					media.setComment(entry.getValue().toString());
-				if(entry.getKey().contains(("album")))
+				else if(entry.getKey().toLowerCase().contains(("album")))
 					media.setAlbum(entry.getValue().toString());
-				if(entry.getKey().contains(("track")))
+				else if(entry.getKey().toLowerCase().contains(("track")))
 					media.setTrack(entry.getValue().toString());
-				if(entry.getKey().contains(("composer")))
+				else if(entry.getKey().toLowerCase().contains(("composer")))
 					media.setComposer(entry.getValue().toString());
-				if(entry.getKey().contains(("genre") ))
+				else if(entry.getKey().toLowerCase().contains(("genre")))
 					media.setGenre(entry.getValue().toString());
-				if(entry.getKey().contains(("frequency")))
+				else if(entry.getKey().toLowerCase().contains(("frequency")))
 					media.setFrequency(Float.parseFloat(entry.getValue().toString()));
-				if(entry.getKey().contains(("duration")))
+				else if(entry.getKey().toLowerCase().contains(("duration")))
 					media.setDuration(Float.parseFloat(entry.getValue().toString()));
-				if(entry.getKey().contains(("bitrate")))
+				else if(entry.getKey().toLowerCase().contains(("bitrate")))
 					media.setBitrate(Integer.parseInt(entry.getValue().toString()));
-				
 			}
 
 		}
+		else //sofern es keine mp3 is, is ein nicht unterstuetzer typ, und setze somit die eintraege des media objeks auf leer bw. -1 
+		{
+			media.setAuthor("");
+			media.setTitle("");
+			media.setDate("");
+			media.setComment("");
+			media.setAlbum("");
+			media.setTrack("");
+			media.setComposer("");
+			media.setGenre("");
+			media.setFrequency(-1f);
+			media.setDuration(-1f);
+			media.setBitrate(-1);
+		}
+		
 		// add a "audio" tag
 		media.addTag("audio");
 		System.out.println(media.serializeObject());
