@@ -162,17 +162,17 @@ public class AudioMetadataGenerator {
 			media.setEncoding(aformat.getEncoding().toString());
 		
 		// read file-type specific properties
-		//sofern die daei eine mpeg datei ist, schreib die in die media insanz alle werte  
+		// sofern die datei eine mpeg datei ist, schreib sie in die media instanz alle werte  
 		if(aformat.getEncoding().toString().toLowerCase().contains("mpeg") )
 		{
-			//lade alle properties in eine eigene hashmap um sie spaeter durchzugehen
+			//lade alle properties in eine eigene hashmap um sie später durchzugehen
 			AudioFileFormat aff = AudioSystem.getAudioFileFormat(in);
 			Map<String, Object> map = aff.properties();
 
 			//gehe jeden eintrag der map durch 
 			for(Entry<String, Object> entry : map.entrySet())
 			{
-				//sofern der key des einrages eines der schluesselworte enthaelt z.b. author,
+				//sofern der key des eintrages eines der schlüsselworte enthält z.b. author,
 				//schreibe den inhalt in das media objekt
 				if(entry.getKey().toLowerCase().contains(("author")))
 					media.setAuthor(entry.getValue().toString());
@@ -199,7 +199,8 @@ public class AudioMetadataGenerator {
 			}
 
 		}
-		else //sofern es keine mp3 is, is ein nicht unterstuetzer typ, und setze somit die eintraege des media objeks auf leer bw. -1 
+		else //sofern es keine mp3 is, is ein nicht unterstützer typ,
+			//und setze somit die einträge des media objeks auf leer bzw. -1 
 		{
 			media.setAuthor("");
 			media.setTitle("");
@@ -216,7 +217,7 @@ public class AudioMetadataGenerator {
 		
 		// add a "audio" tag
 		media.addTag("audio");
-		System.out.println(media.serializeObject());
+		// System.out.println(media.serializeObject());
 
 		// close the audio and write the md file.
 		media.writeToFile(outputFile);

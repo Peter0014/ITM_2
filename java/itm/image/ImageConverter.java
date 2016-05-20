@@ -8,7 +8,6 @@ import java.awt.image.BufferedImage;
 *******************************************************************************/
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -18,8 +17,6 @@ import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
 import javax.imageio.stream.FileImageOutputStream;
-
-import com.sun.image.codec.jpeg.JPEGEncodeParam;
 
 /**
     This class converts images into various image formats (BMP, PNG, ...).

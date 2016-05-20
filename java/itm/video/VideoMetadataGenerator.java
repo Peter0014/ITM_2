@@ -148,31 +148,31 @@ public class VideoMetadataGenerator {
 		VideoMedia media = (VideoMedia) MediaFactory.createMedia(input);
 
 		// set video and audio stream metadata 
-		 // Create a Xuggler container object
-		//der conainer ist vorerst leer enthael dann aber alle video daten
+		// Create a Xuggler container object
+		// der conainer ist vorerst leer enthält dann aber alle video daten
 	    IContainer container = IContainer.make();
-	    //oeffnen des containers mit dem gewuenschten video 
+	    //öffnen des containers mit dem gewünschten video 
 	    container.open(input.getAbsolutePath(), IContainer.Type.READ, null);
 	    
-	    // der container kann mehrere streams enthalten wie z.b. einen video und einen audio sream
+	    // der container kann mehrere streams enthalten wie z.b. einen video und einen audio stream
 	    int numStreams = container.getNumStreams();
 	    
-	    //nun gehn wir alle streams durch und reagieren je nachdem drauf
+	    //nun gehen wir alle streams durch und reagieren je nachdem drauf
 	    for(int i = 0; i < numStreams; i++)
 	    {
-	    	//holen uns nacheinander jeden sream einmal raus und bearbeien ihn
+	      //holen uns nacheinander jeden stream einmal raus und bearbeiten ihn
 	      IStream stream = container.getStream(i);
 
 	      //enheal die encodieren DAen des sreams
 	      IStreamCoder coder = stream.getStreamCoder();
 
-	      //setzen der wetre des mediaobjeks
+	      //setzen der werte des mediaobjekts
 	      media.setVideoCodec(coder.getCodecType().toString());
 	      media.setVideoCodecID(coder.getCodecID().toString());
 	     
 	      media.setVideoLength(container.getDuration() / Global.DEFAULT_PTS_PER_SECOND);
 	      
-	      //nun muessen wir checken ob der stream gerade ein video bw ein audio sream is und speichern
+	      //nun muessen wir checken ob der stream gerade ein video bzw ein audio sream ist und speichern
 	      //je nachdem verschiedene werte in das objekt
 	      if (coder.getCodecType() == Type.CODEC_TYPE_AUDIO)
 	      {
@@ -192,10 +192,12 @@ public class VideoMetadataGenerator {
 	    
 		// add video tag
 	    media.addTag("video");
-	    System.out.println(media.serializeObject());
+	    // System.out.println(media.serializeObject());
 
 		// write metadata
 		media.writeToFile(outputFile);
+		
+		container.close();
 	    
 		return media;
 	}

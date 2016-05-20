@@ -16,8 +16,6 @@ import java.io.StringWriter;
 
 import javax.imageio.ImageIO;
 
-import com.sun.corba.se.impl.orbutil.closure.Constant;
-
 /**
     This class describes an image. 
 */

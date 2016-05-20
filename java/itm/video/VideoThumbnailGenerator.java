@@ -280,7 +280,7 @@ public class VideoThumbnailGenerator {
 				);
 		
 		// Encode every picture into a video and save it
-		for (int i = 1; i < pictures.size(); i++) {
+		for (int i = 0; i < pictures.size(); i++) {
 			writer.encodeVideo(0, pictures.get(i), i, TimeUnit.SECONDS);
 		}
 
@@ -299,7 +299,7 @@ public class VideoThumbnailGenerator {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		args = new String[] { "./media/video/DREIZEHN.AVI", "./test", "5" };
+		args = new String[] { "./media/video/panda.avi", "./test", "" };
 
 		if (args.length < 3) {
 			System.out.println(
