@@ -11,15 +11,7 @@ import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 
-import com.xuggle.xuggler.ICodec;
-import com.xuggle.xuggler.IContainer;
-import com.xuggle.xuggler.IPacket;
-import com.xuggle.xuggler.IPixelFormat;
-import com.xuggle.xuggler.IStream;
-import com.xuggle.xuggler.IStreamCoder;
-import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.IVideoResampler;
-import com.xuggle.xuggler.Utils;
+import com.xuggle.xuggler.*;
 
 /**
  * 
@@ -146,17 +138,26 @@ public class VideoFrameGrabber {
 		int width = coder.getWidth(); // Video width
 		int height = coder.getHeight(); // Video height
 
-		// Create a resampler in case the video isn't not in the right
+		// Create a resampler in case the video isn't in the right
 		// format (BGR24)
-		IVideoResampler resampler = IVideoResampler.make(width, height,
-				IPixelFormat.Type.BGR24, width, height,
-				coder.getPixelType());
+		// Call the resampler with 
+		// .make(targetWidth, targetHeight, targetPixelFormat,
+		//       srcWidth, srcHeight, srcPixelFormat)
+		IVideoResampler resampler = IVideoResampler.make(
+				width, height, IPixelFormat.Type.BGR24,
+				width, height, coder.getPixelType());
 
 		IPacket packet = IPacket.make(); // Packets that will be loaded and
 											// analyzed further
 
 		// Jump to the correct place in the video stream (in this case at halftime)
-		container.seekKeyFrame(videoStreamIndex, 0, frames / 2, frames, 0);
+		container.seekKeyFrame(
+				videoStreamIndex, // Stream Id
+				0,	// Starting point
+				frames / 2,	// Point to seek to
+				frames,	// End point
+				0	// Type of seeker (0 = None/Any)
+				);
 
 		// VideoPicture that will be decoded and saved if its complete
 		IVideoPicture picture = IVideoPicture.make(coder.getPixelType(), width, height);
@@ -176,8 +177,8 @@ public class VideoFrameGrabber {
 					// Go through the whole package until its done or the picture is complete
 					while (byteOffset < packet.getSize()) { 
 						byteOffset += coder.decodeVideo(picture, packet, byteOffset);
+						
 						if (picture.isComplete()) {
-							
 							// Resample picture if its necessary and save it locally
 							if (coder.getPixelType() != IPixelFormat.Type.BGR24) {
 								IVideoPicture resampled = IVideoPicture.make(
@@ -192,11 +193,11 @@ public class VideoFrameGrabber {
 							}
 							break;
 						}
-					} // While loop and this Packet is done
+					} // Packet is done
 					coder.close(); // Cleanup
-				}
-			}
-		}
+				} // if (videoStream) end
+			} // if (Packet.isKey) end
+		} 
 
 		// Cleanup
 		container.close();
@@ -213,7 +214,7 @@ public class VideoFrameGrabber {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		args = new String[] { "./media/video/", "./test" };
+		// args = new String[] { "./media/video/", "./test" };
 
 		if (args.length < 2) {
 			System.out.println("usage: java itm.video.VideoFrameGrabber <input-videoFile> <output-directory>");
