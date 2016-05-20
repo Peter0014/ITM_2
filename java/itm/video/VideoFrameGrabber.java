@@ -9,6 +9,18 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import javax.imageio.ImageIO;
+
+import com.xuggle.xuggler.ICodec;
+import com.xuggle.xuggler.IContainer;
+import com.xuggle.xuggler.IPacket;
+import com.xuggle.xuggler.IPixelFormat;
+import com.xuggle.xuggler.IStream;
+import com.xuggle.xuggler.IStreamCoder;
+import com.xuggle.xuggler.IVideoPicture;
+import com.xuggle.xuggler.IVideoResampler;
+import com.xuggle.xuggler.Utils;
+
 /**
  * 
  * This class creates JPEG thumbnails from from video frames grabbed from the
@@ -99,6 +111,98 @@ public class VideoFrameGrabber {
 		// Fill in your code here!
 		// ***************************************************************
 
+		// Sources:
+		// see https://goo.gl/ZBAcmC and https://goo.gl/BTyrJN (JavaCodeGeeks,
+		// on 14.05.2016)
+		// see https://goo.gl/DMAObO (Xuggler Demo File, on 14.05.2016)
+
+		// Create Streamcoder, Container and load video into it
+		IContainer container = IContainer.make();
+		IStreamCoder coder = null;
+		container.open(input.getAbsolutePath(), IContainer.Type.READ, null);
+
+		long frames = 0; // Max amount of frames in the video stream
+		int numStreams = container.getNumStreams(); // Total number of streams
+		int videoStreamIndex = -1; // Correct number of the video stream, -1 if
+									// none found
+
+		// Loop to find correct video stream, if not found an exception will be
+		// thrown. Also to extract the amount of frames from the stream
+		for (int i = 0; i < numStreams; i++) {
+
+			IStream stream = container.getStream(i);
+			coder = stream.getStreamCoder();
+
+			if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_VIDEO) {
+				videoStreamIndex = i;
+				frames = stream.getDuration();
+				break;
+			}
+		}
+
+		if (videoStreamIndex == -1)
+			throw new IOException("Input file " + input + " doesn't have a videostream!");
+
+		int width = coder.getWidth(); // Video width
+		int height = coder.getHeight(); // Video height
+
+		// Create a resampler in case the video isn't not in the right
+		// format (BGR24)
+		IVideoResampler resampler = IVideoResampler.make(width, height,
+				IPixelFormat.Type.BGR24, width, height,
+				coder.getPixelType());
+
+		IPacket packet = IPacket.make(); // Packets that will be loaded and
+											// analyzed further
+
+		// Jump to the correct place in the video stream (in this case at halftime)
+		container.seekKeyFrame(videoStreamIndex, 0, frames / 2, frames, 0);
+
+		// VideoPicture that will be decoded and saved if its complete
+		IVideoPicture picture = IVideoPicture.make(coder.getPixelType(), width, height);
+		boolean success = false; // Check if a KeyFrame was found
+
+		// read out the contents of the media file
+		while (container.readNextPacket(packet) >= 0) {
+			if (picture.isComplete()) // Finish if the picture is complete
+				break;
+
+			if (packet.isKeyPacket() || success) { 
+				if (packet.getStreamIndex() == videoStreamIndex) {
+					success = true;
+					coder.open(null, null);
+					int byteOffset = 0; // bytes that have been already decoded
+					
+					// Go through the whole package until its done or the picture is complete
+					while (byteOffset < packet.getSize()) { 
+						byteOffset += coder.decodeVideo(picture, packet, byteOffset);
+						if (picture.isComplete()) {
+							
+							// Resample picture if its necessary and save it locally
+							if (coder.getPixelType() != IPixelFormat.Type.BGR24) {
+								IVideoPicture resampled = IVideoPicture.make(
+										resampler.getOutputPixelFormat(),
+										width,
+										height
+										);
+								resampler.resample(resampled, picture);
+								ImageIO.write(Utils.videoPictureToImage(resampled), "jpg", outputFile);
+							} else {
+								ImageIO.write(Utils.videoPictureToImage(picture), "jpg", outputFile);
+							}
+							break;
+						}
+					} // While loop and this Packet is done
+					coder.close(); // Cleanup
+				}
+			}
+		}
+
+		// Cleanup
+		container.close();
+		container = null;
+		coder = null;
+
 		return outputFile;
 
 	}
@@ -109,7 +213,7 @@ public class VideoFrameGrabber {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		// args = new String[] { "./media/video", "./test" };
+		args = new String[] { "./media/video/", "./test" };
 
 		if (args.length < 2) {
 			System.out.println("usage: java itm.video.VideoFrameGrabber <input-videoFile> <output-directory>");

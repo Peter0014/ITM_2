@@ -15,8 +15,8 @@
 	<classpathentry kind="lib" path="lib/tritonus_aos-0.3.6.jar"/>
 	<classpathentry kind="lib" path="lib/tritonus_dsp-0.3.6.jar"/>
 	<classpathentry kind="lib" path="lib/tritonus_share.jar"/>
-	<classpathentry kind="lib" path="lib/vorbisspi1.0.2.jar"/>
 	<classpathentry kind="lib" path="lib/xuggle-xuggler-test.jar"/>
 	<classpathentry kind="lib" path="lib/xuggle-xuggler.jar"/>
+	<classpathentry kind="lib" path="lib/tritonus_jorbis-0.3.6.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
